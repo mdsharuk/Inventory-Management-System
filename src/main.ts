@@ -1,12 +1,12 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -15,12 +15,16 @@ async function bootstrap() {
     }),
   );
 
+  // Apply JWT Guard globally
+  const reflector = app.get(Reflector);
+  app.useGlobalGuards(new JwtAuthGuard(reflector));
+
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('CRUD API')
     .setDescription('The CRUD API description')
     .setVersion('1.0')
-    .addTag('users')
+    .addTag('crud')
     .addBearerAuth()
     .build();
 

@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RegisterDto } from './register.dto';
 import { LoginDto } from './login.dto';
+import { CreateUserByAdminDto } from './create-user-by-admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +22,6 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const { email, password, name } = registerDto;
-
     // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -40,6 +40,51 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    // Save refresh token
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      user,
+      ...tokens,
+    };
+  }
+
+  async createUserByAdmin(createUserByAdminDto: CreateUserByAdminDto) {
+    const { email, password, name, role = 'USER' } = createUserByAdminDto;
+
+    // Check if user exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user with specified role
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role,
       },
       select: {
         id: true,
