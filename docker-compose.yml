@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: inventory_postgres
+    environment:
+      POSTGRES_DB: inventory_management_db
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_password
+    ports:
+      - '5432:3036'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventory_network
+
+  adminer:
+    image: adminer
+    container_name: inventory_adminer
+    ports:
+      - '8080:8080'
+    networks:
+      - inventory_network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+
+networks:
+  inventory_network:
+    driver: bridge

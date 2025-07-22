@@ -11,6 +11,9 @@ export enum UserRole {
   ADMIN = 'ADMIN',
   USER = 'USER',
   MODERATOR = 'MODERATOR',
+  MANAGER = 'MANAGER',
+  SALES_REP = 'SALES_REP',
+  INVENTORY_CLERK = 'INVENTORY_CLERK',
 }
 
 export class CreateUserByAdminDto {

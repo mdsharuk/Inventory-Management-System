@@ -21,22 +21,51 @@ async function bootstrap() {
 
   // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('CRUD API')
-    .setDescription('The CRUD API description')
+    .setTitle('Inventory Management System API')
+    .setDescription(
+      'Comprehensive Inventory Management System for Small Businesses - Manage inventory, sales, and orders efficiently',
+    )
     .setVersion('1.0')
-    .addTag('crud')
+    .addTag('Authentication')
+    .addTag('Inventory Management')
+    .addTag('Sales Management')
+    .addTag('Reports & Analytics')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(
-    `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
-  );
-  console.log(
-    `Swagger docs available at: http://localhost:${process.env.PORT ?? 3000}/api`,
-  );
+  const port = process.env.PORT ?? 3000;
+  // Force IPv4 binding to avoid Windows IPv6 permission issues
+  const host = process.env.HOST ?? '127.0.0.1';
+
+  console.log(`Starting server on host: ${host}, port: ${port}`);
+
+  try {
+    await app.listen(port, host);
+    console.log(
+      `🚀 Inventory Management System is running on: http://${host}:${port}`,
+    );
+    console.log(
+      `📚 API Documentation available at: http://${host}:${port}/api`,
+    );
+    console.log(
+      `📊 Features: Inventory Management | Sales Processing | Order Fulfillment | Analytics & Reports`,
+    );
+  } catch (error) {
+    console.error('Failed to start server:', error.message);
+    console.log('Trying alternative port 8080...');
+    try {
+      await app.listen(8080, host);
+      console.log(
+        `🚀 Inventory Management System is running on: http://${host}:8080`,
+      );
+      console.log(`📚 API Documentation available at: http://${host}:8080/api`);
+    } catch (fallbackError) {
+      console.error('Failed to start on fallback port:', fallbackError.message);
+      process.exit(1);
+    }
+  }
 }
 bootstrap();

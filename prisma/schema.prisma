@@ -20,6 +20,8 @@ model User {
   posts     Post[]
   comments  Comment[]
   profile   Profile?
+  stockMovements StockMovement[]
+  inventoryAdjustments InventoryAdjustment[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -83,22 +85,250 @@ model Category {
   @@map("categories")
 }
 
+model Supplier {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String?   @unique
+  phone        String?
+  address      String?
+  contactPerson String?
+  products     Product[]
+  purchaseOrders PurchaseOrder[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("suppliers")
+}
+
 model Product {
+  id           Int           @id @default(autoincrement())
+  name         String
+  description  String?
+  sku          String        @unique
+  barcode      String?       @unique
+  price        Decimal       @db.Decimal(10, 2)
+  costPrice    Decimal       @db.Decimal(10, 2)
+  stock        Int           @default(0)
+  minStock     Int           @default(0)
+  maxStock     Int?
+  unitOfMeasure String       @default("pcs")
+  categoryId   Int
+  supplierId   Int?
+  status       ProductStatus @default(ACTIVE)
+  
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  stockMovements StockMovement[]
+  orderItems   OrderItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  inventoryAdjustments InventoryAdjustment[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("products")
+}
+
+model Customer {
   id          Int      @id @default(autoincrement())
   name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  stock       Int      @default(0)
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  email       String?  @unique
+  phone       String?
+  address     String?
+  orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("products")
+  @@map("customers")
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  orderNumber  String      @unique
+  customerId   Int?
+  status       OrderStatus @default(PENDING)
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  discount     Decimal     @default(0) @db.Decimal(10, 2)
+  tax          Decimal     @default(0) @db.Decimal(10, 2)
+  finalAmount  Decimal     @db.Decimal(10, 2)
+  orderDate    DateTime    @default(now())
+  dueDate      DateTime?
+  paidDate     DateTime?
+  notes        String?
+  
+  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items        OrderItem[]
+  payments     Payment[]
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+  
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("order_items")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @default(CASH)
+  paymentDate   DateTime      @default(now())
+  reference     String?
+  notes         String?
+  
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model PurchaseOrder {
+  id              Int                   @id @default(autoincrement())
+  orderNumber     String                @unique
+  supplierId      Int
+  status          PurchaseOrderStatus   @default(PENDING)
+  totalAmount     Decimal               @db.Decimal(10, 2)
+  orderDate       DateTime              @default(now())
+  expectedDate    DateTime?
+  receivedDate    DateTime?
+  notes           String?
+  
+  supplier        Supplier              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items           PurchaseOrderItem[]
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int
+  quantity        Int
+  unitCost        Decimal       @db.Decimal(10, 2)
+  totalCost       Decimal       @db.Decimal(10, 2)
+  receivedQty     Int           @default(0)
+  
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("purchase_order_items")
+}
+
+model StockMovement {
+  id            Int                @id @default(autoincrement())
+  productId     Int
+  movementType  StockMovementType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  unitCost      Decimal?           @db.Decimal(10, 2)
+  reference     String?
+  notes         String?
+  userId        Int?
+  
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user          User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("stock_movements")
+}
+
+model InventoryAdjustment {
+  id            Int                      @id @default(autoincrement())
+  productId     Int
+  adjustmentType InventoryAdjustmentType
+  quantity      Int
+  reason        String
+  notes         String?
+  userId        Int
+  
+  product       Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@map("inventory_adjustments")
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  CHECK
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  APPROVED
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+  TRANSFER
+  RETURN
+}
+
+enum InventoryAdjustmentType {
+  INCREASE
+  DECREASE
 }
 
 enum Role {
   USER
   ADMIN
   MODERATOR
+  MANAGER
+  SALES_REP
+  INVENTORY_CLERK
 }
