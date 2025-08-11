@@ -42,6 +42,13 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Prisma
+prisma/dev.db
+prisma/migrations/
+
 # temp directory
 .temp
 .tmp
