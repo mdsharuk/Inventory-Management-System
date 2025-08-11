@@ -5,7 +5,7 @@
   "author": "Your Name",
   "private": true,
   "license": "MIT",
-  "packageManager": "npm@10.8.2",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "build": "nest build",
